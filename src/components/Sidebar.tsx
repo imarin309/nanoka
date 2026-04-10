@@ -48,7 +48,9 @@ export function Sidebar({
         style={{
           width: "75vw",
           maxWidth: "300px",
-          background: "#fff",
+          background: "rgba(255,255,255,0.5)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
           boxShadow: "-2px 0 16px rgba(0,0,0,0.08)",
         }}
       >
