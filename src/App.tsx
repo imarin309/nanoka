@@ -4,7 +4,11 @@ import { Sidebar } from "./components/Sidebar";
 import { MemoEditor } from "./components/MemoEditor";
 
 const imageUrls = Object.values(
-  import.meta.glob<string>("./assets/image/*.png", { eager: true, query: "?url", import: "default" })
+  import.meta.glob<string>("./assets/image/*.png", {
+    eager: true,
+    query: "?url",
+    import: "default",
+  }),
 );
 
 function pickCharacter(seed: string): string {
@@ -30,7 +34,7 @@ export default function App() {
         className="w-full flex flex-col flex-1"
         style={{ maxWidth: "480px" }}
       >
-        <div className="flex items-center px-6 pt-8 pb-6">
+        <div className="flex items-center px-6 pt-16 pb-6">
           <input
             type="text"
             value={currentMemo?.title ?? ""}
@@ -39,7 +43,7 @@ export default function App() {
               updateMemo(currentMemo.id, { title: e.target.value })
             }
             placeholder="タイトル"
-            className="flex-1 text-3xl font-bold bg-transparent border-none"
+            className="flex-1 text-3xl font-bold bg-transparent border-none text-center"
             style={{ color: "#111", fontFamily: "inherit" }}
           />
         </div>
