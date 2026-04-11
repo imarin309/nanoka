@@ -13,6 +13,9 @@ export function useMemos() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const dbRef = useRef<IDBDatabase | null>(null);
+  const memosRef = useRef<Memo[]>(memos);
+  memosRef.current = memos;
+  const saveSeqRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -81,25 +84,27 @@ export function useMemos() {
       const db = dbRef.current;
       if (!db) return;
 
-      let prevMemo: Memo | undefined;
-      let nextMemo: Memo | undefined;
+      const found = memosRef.current.find((m) => m.id === id);
+      if (!found) return;
 
-      setMemos((prev) => {
-        const found = prev.find((m) => m.id === id);
-        if (!found) return prev;
-        prevMemo = found;
-        nextMemo = { ...found, ...patch, updatedAt: Date.now() };
-        return prev.map((m) => (m.id === id ? nextMemo! : m));
-      });
+      saveSeqRef.current[id] = (saveSeqRef.current[id] ?? 0) + 1;
+      const seq = saveSeqRef.current[id];
 
-      if (!nextMemo || !prevMemo) return;
+      const nextMemo: Memo = { ...found, ...patch, updatedAt: Date.now() };
+      setMemos((prev) => prev.map((m) => (m.id === id ? nextMemo : m)));
 
       try {
         await putMemo(db, nextMemo);
+        // putMemo 完了後、awaiting 中に deleteMemo が走っていた場合は DB から削除して整合を保つ
+        if (!memosRef.current.some((m) => m.id === id)) {
+          await deleteMemoFromDB(db, id).catch(() => {});
+        }
       } catch (e) {
-        setError(e instanceof Error ? e : new Error(String(e)));
-        const snapshot = prevMemo;
-        setMemos((prev) => prev.map((m) => (m.id === id ? snapshot : m)));
+        // 最新の呼び出しのみがロールバックを担う（古い失敗が後続の成功を巻き戻さないよう）
+        if (saveSeqRef.current[id] === seq) {
+          setError(e instanceof Error ? e : new Error(String(e)));
+          setMemos((prev) => prev.map((m) => (m.id === id ? found : m)));
+        }
       }
     },
     [],
@@ -114,6 +119,7 @@ export function useMemos() {
         return;
       }
     }
+    delete saveSeqRef.current[id];
     setMemos((prev) => {
       const next = prev.filter((m) => m.id !== id);
       setCurrentId((cur) => {
