@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useMemos } from "./hooks/useMemos";
 import { Sidebar } from "./components/Sidebar";
 import { MemoEditor } from "./components/MemoEditor";
+import { TitleInput } from "./components/TitleInput";
+import { AnpanButton } from "./components/AnpanButton";
 
 const imageUrls = Object.values(
   import.meta.glob<string>("./assets/image/*.png", {
@@ -34,19 +36,7 @@ export default function App() {
         className="w-full flex flex-col flex-1"
         style={{ maxWidth: "480px" }}
       >
-        <div className="flex items-center px-6 pt-16 pb-6">
-          <input
-            type="text"
-            value={currentMemo?.title ?? ""}
-            onChange={(e) =>
-              currentMemo &&
-              updateMemo(currentMemo.id, { title: e.target.value })
-            }
-            placeholder="タイトル"
-            className="flex-1 text-3xl font-bold bg-transparent border-none text-center"
-            style={{ color: "#111", fontFamily: "inherit" }}
-          />
-        </div>
+        <TitleInput memo={currentMemo} onUpdate={updateMemo} />
 
         {/* エディタ（本文のみ） */}
         <div className="flex-1 flex flex-col">
@@ -59,18 +49,7 @@ export default function App() {
       </div>
 
       {/* キャラクター（タップでサイドバーを開く） */}
-      <button
-        onClick={() => setSidebarOpen(true)}
-        className="fixed bottom-0 right-0 select-none active:opacity-60 transition-opacity"
-        aria-label="メニューを開く"
-        style={{ zIndex: 15 }}
-      >
-        <img
-          src={characterSrc}
-          alt=""
-          style={{ width: "min(45vw, 160px)", opacity: 0.5 }}
-        />
-      </button>
+      <AnpanButton src={characterSrc} onClick={() => setSidebarOpen(true)} />
 
       {/* サイドバー */}
       <Sidebar
