@@ -40,10 +40,11 @@ export function putMemo(db: IDBDatabase, memo: Memo): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    const req = store.put(memo);
+    store.put(memo);
 
-    req.onsuccess = () => resolve();
-    req.onerror = (e) => reject((e.target as IDBRequest).error);
+    tx.oncomplete = () => resolve();
+    tx.onabort = (e) => reject((e.target as IDBTransaction).error);
+    tx.onerror = (e) => reject((e.target as IDBTransaction).error);
   });
 }
 
@@ -51,9 +52,10 @@ export function deleteMemo(db: IDBDatabase, id: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    const req = store.delete(id);
+    store.delete(id);
 
-    req.onsuccess = () => resolve();
-    req.onerror = (e) => reject((e.target as IDBRequest).error);
+    tx.oncomplete = () => resolve();
+    tx.onabort = (e) => reject((e.target as IDBTransaction).error);
+    tx.onerror = (e) => reject((e.target as IDBTransaction).error);
   });
 }

@@ -13,11 +13,6 @@ export function useMemos() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const dbRef = useRef<IDBDatabase | null>(null);
-  const memosRef = useRef<Memo[]>([]);
-
-  useEffect(() => {
-    memosRef.current = memos;
-  }, [memos]);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,7 +20,10 @@ export function useMemos() {
     async function init() {
       try {
         const db = await openDB();
-        if (cancelled) return;
+        if (cancelled) {
+          db.close();
+          return;
+        }
         dbRef.current = db;
 
         if (navigator.storage?.persist) {
@@ -47,6 +45,8 @@ export function useMemos() {
     init();
     return () => {
       cancelled = true;
+      dbRef.current?.close();
+      dbRef.current = null;
     };
   }, []);
 
@@ -81,18 +81,25 @@ export function useMemos() {
       const db = dbRef.current;
       if (!db) return;
 
-      const prevMemo = memosRef.current.find((m) => m.id === id);
-      if (!prevMemo) return;
+      let prevMemo: Memo | undefined;
+      let nextMemo: Memo | undefined;
 
-      const nextMemo: Memo = { ...prevMemo, ...patch, updatedAt: Date.now() };
+      setMemos((prev) => {
+        const found = prev.find((m) => m.id === id);
+        if (!found) return prev;
+        prevMemo = found;
+        nextMemo = { ...found, ...patch, updatedAt: Date.now() };
+        return prev.map((m) => (m.id === id ? nextMemo! : m));
+      });
 
-      setMemos((prev) => prev.map((m) => (m.id === id ? nextMemo : m)));
+      if (!nextMemo || !prevMemo) return;
 
       try {
         await putMemo(db, nextMemo);
       } catch (e) {
         setError(e instanceof Error ? e : new Error(String(e)));
-        setMemos((prev) => prev.map((m) => (m.id === id ? prevMemo : m)));
+        const snapshot = prevMemo;
+        setMemos((prev) => prev.map((m) => (m.id === id ? snapshot : m)));
       }
     },
     [],
