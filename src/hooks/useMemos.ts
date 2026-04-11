@@ -13,6 +13,8 @@ export function useMemos() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const dbRef = useRef<IDBDatabase | null>(null);
+  const memosRef = useRef<Memo[]>(memos);
+  memosRef.current = memos;
 
   useEffect(() => {
     let cancelled = false;
@@ -81,25 +83,17 @@ export function useMemos() {
       const db = dbRef.current;
       if (!db) return;
 
-      let prevMemo: Memo | undefined;
-      let nextMemo: Memo | undefined;
+      const found = memosRef.current.find((m) => m.id === id);
+      if (!found) return;
 
-      setMemos((prev) => {
-        const found = prev.find((m) => m.id === id);
-        if (!found) return prev;
-        prevMemo = found;
-        nextMemo = { ...found, ...patch, updatedAt: Date.now() };
-        return prev.map((m) => (m.id === id ? nextMemo! : m));
-      });
-
-      if (!nextMemo || !prevMemo) return;
+      const nextMemo: Memo = { ...found, ...patch, updatedAt: Date.now() };
+      setMemos((prev) => prev.map((m) => (m.id === id ? nextMemo : m)));
 
       try {
         await putMemo(db, nextMemo);
       } catch (e) {
         setError(e instanceof Error ? e : new Error(String(e)));
-        const snapshot = prevMemo;
-        setMemos((prev) => prev.map((m) => (m.id === id ? snapshot : m)));
+        setMemos((prev) => prev.map((m) => (m.id === id ? found : m)));
       }
     },
     [],
