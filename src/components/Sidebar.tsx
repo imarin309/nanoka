@@ -7,6 +7,7 @@ type Props = {
   currentId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onDelete: (id: string) => void;
 };
 
 export function Sidebar({
@@ -16,6 +17,7 @@ export function Sidebar({
   currentId,
   onSelect,
   onNew,
+  onDelete,
 }: Props) {
   const handleSelect = (id: string) => {
     onSelect(id);
@@ -25,6 +27,11 @@ export function Sidebar({
   const handleNew = () => {
     onNew();
     onClose();
+  };
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    onDelete(id);
   };
 
   return (
@@ -85,23 +92,35 @@ export function Sidebar({
             </p>
           ) : (
             memos.map((memo) => (
-              <button
+              <div
                 key={memo.id}
-                onClick={() => handleSelect(memo.id)}
-                className="w-full text-left active:opacity-50"
+                className="flex items-center"
                 style={{
-                  padding: "20px 0",
                   borderBottom: "1px solid #f0f0f0",
                   opacity: memo.id === currentId ? 1 : 0.6,
                 }}
               >
-                <p
-                  className="font-bold text-sm truncate"
-                  style={{ color: "#333" }}
+                <button
+                  onClick={() => handleSelect(memo.id)}
+                  className="flex-1 text-left active:opacity-50"
+                  style={{ padding: "20px 0" }}
                 >
-                  {memo.title || "（タイトルなし）"}
-                </p>
-              </button>
+                  <p
+                    className="font-bold text-sm truncate"
+                    style={{ color: "#333" }}
+                  >
+                    {memo.title || "（タイトルなし）"}
+                  </p>
+                </button>
+                <button
+                  onClick={(e) => handleDelete(e, memo.id)}
+                  className="shrink-0 active:opacity-50 pl-3"
+                  style={{ color: "#ccc", fontSize: "18px", lineHeight: 1 }}
+                  aria-label="削除"
+                >
+                  ×
+                </button>
+              </div>
             ))
           )}
         </div>
