@@ -15,6 +15,7 @@ export function useMemos() {
   const dbRef = useRef<IDBDatabase | null>(null);
   const memosRef = useRef<Memo[]>(memos);
   memosRef.current = memos;
+  const saveSeqRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -86,15 +87,24 @@ export function useMemos() {
       const found = memosRef.current.find((m) => m.id === id);
       if (!found) return;
 
+      saveSeqRef.current[id] = (saveSeqRef.current[id] ?? 0) + 1;
+      const seq = saveSeqRef.current[id];
+
       const nextMemo: Memo = { ...found, ...patch, updatedAt: Date.now() };
       setMemos((prev) => prev.map((m) => (m.id === id ? nextMemo : m)));
 
       try {
-        if (!memosRef.current.some((m) => m.id === id)) return;
         await putMemo(db, nextMemo);
+        // putMemo 完了後、awaiting 中に deleteMemo が走っていた場合は DB から削除して整合を保つ
+        if (!memosRef.current.some((m) => m.id === id)) {
+          await deleteMemoFromDB(db, id).catch(() => {});
+        }
       } catch (e) {
-        setError(e instanceof Error ? e : new Error(String(e)));
-        setMemos((prev) => prev.map((m) => (m.id === id ? found : m)));
+        // 最新の呼び出しのみがロールバックを担う（古い失敗が後続の成功を巻き戻さないよう）
+        if (saveSeqRef.current[id] === seq) {
+          setError(e instanceof Error ? e : new Error(String(e)));
+          setMemos((prev) => prev.map((m) => (m.id === id ? found : m)));
+        }
       }
     },
     [],
