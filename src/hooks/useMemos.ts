@@ -119,6 +119,7 @@ export function useMemos() {
         return;
       }
     }
+    delete saveSeqRef.current[id];
     setMemos((prev) => {
       const next = prev.filter((m) => m.id !== id);
       setCurrentId((cur) => {
