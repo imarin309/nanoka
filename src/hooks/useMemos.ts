@@ -90,6 +90,7 @@ export function useMemos() {
       setMemos((prev) => prev.map((m) => (m.id === id ? nextMemo : m)));
 
       try {
+        if (!memosRef.current.some((m) => m.id === id)) return;
         await putMemo(db, nextMemo);
       } catch (e) {
         setError(e instanceof Error ? e : new Error(String(e)));
