@@ -13,6 +13,11 @@ export function useMemos() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const dbRef = useRef<IDBDatabase | null>(null);
+  const memosRef = useRef<Memo[]>([]);
+
+  useEffect(() => {
+    memosRef.current = memos;
+  }, [memos]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +53,11 @@ export function useMemos() {
   const currentMemo = memos.find((m) => m.id === currentId) ?? null;
 
   const createMemo = useCallback(async () => {
+    const db = dbRef.current;
+    if (!db) {
+      setError(new Error("Database not initialized"));
+      return;
+    }
     const newMemo: Memo = {
       id: crypto.randomUUID(),
       title: "",
@@ -55,12 +65,11 @@ export function useMemos() {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    if (dbRef.current) {
-      try {
-        await putMemo(dbRef.current, newMemo);
-      } catch (e) {
-        setError(e instanceof Error ? e : new Error(String(e)));
-      }
+    try {
+      await putMemo(db, newMemo);
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+      return;
     }
     setMemos((prev) => [newMemo, ...prev]);
     setCurrentId(newMemo.id);
@@ -69,20 +78,22 @@ export function useMemos() {
 
   const updateMemo = useCallback(
     async (id: string, patch: Partial<Pick<Memo, "title" | "content">>) => {
-      setMemos((prev) => {
-        const updated = prev.map((m) =>
-          m.id === id ? { ...m, ...patch, updatedAt: Date.now() } : m,
-        );
-        if (dbRef.current) {
-          const target = updated.find((m) => m.id === id);
-          if (target) {
-            putMemo(dbRef.current, target).catch((e) =>
-              setError(e instanceof Error ? e : new Error(String(e))),
-            );
-          }
-        }
-        return updated;
-      });
+      const db = dbRef.current;
+      if (!db) return;
+
+      const prevMemo = memosRef.current.find((m) => m.id === id);
+      if (!prevMemo) return;
+
+      const nextMemo: Memo = { ...prevMemo, ...patch, updatedAt: Date.now() };
+
+      setMemos((prev) => prev.map((m) => (m.id === id ? nextMemo : m)));
+
+      try {
+        await putMemo(db, nextMemo);
+      } catch (e) {
+        setError(e instanceof Error ? e : new Error(String(e)));
+        setMemos((prev) => prev.map((m) => (m.id === id ? prevMemo : m)));
+      }
     },
     [],
   );
