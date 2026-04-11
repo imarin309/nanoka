@@ -22,13 +22,23 @@ function pickCharacter(seed: string): string {
 }
 
 export default function App() {
-  const { memos, currentMemo, createMemo, updateMemo, selectMemo } = useMemos();
+  const {
+    memos,
+    currentMemo,
+    createMemo,
+    updateMemo,
+    deleteMemo,
+    selectMemo,
+    isLoading,
+  } = useMemos();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const characterSrc = useMemo(() => {
     const seed = currentMemo?.id ?? "default";
     return pickCharacter(seed);
   }, [currentMemo?.id]);
+
+  if (isLoading) return null;
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center relative overflow-hidden">
@@ -59,6 +69,7 @@ export default function App() {
         currentId={currentMemo?.id ?? null}
         onSelect={selectMemo}
         onNew={createMemo}
+        onDelete={deleteMemo}
       />
     </div>
   );
