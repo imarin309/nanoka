@@ -22,6 +22,10 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Lock files (use pnpm-lock.yaml only)
+package-lock.json
+yarn.lock
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
