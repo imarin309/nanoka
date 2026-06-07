@@ -1,15 +1,19 @@
 import type { Memo } from "../types";
 import { ExportButton } from "./ExportButton";
 
+function sanitizeFilename(name: string): string {
+  return name.replace(/[\\/:*?"<>|]/g, "_").trim() || "メモ";
+}
+
 function exportAsText(memo: Memo) {
   const text = [memo.title, "", memo.content].join("\n");
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${memo.title || "メモ"}.txt`;
+  a.download = `${sanitizeFilename(memo.title)}.txt`;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 function exportAsPDF(memo: Memo) {
@@ -54,11 +58,15 @@ function exportAsPDF(memo: Memo) {
 
   const prevTitle = document.title;
   document.title = memo.title || "メモ";
-  window.print();
-  document.title = prevTitle;
 
-  document.head.removeChild(style);
-  document.body.removeChild(container);
+  const cleanup = () => {
+    document.title = prevTitle;
+    document.head.removeChild(style);
+    document.body.removeChild(container);
+    window.removeEventListener("afterprint", cleanup);
+  };
+  window.addEventListener("afterprint", cleanup);
+  window.print();
 }
 
 type Props = {

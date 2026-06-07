@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import type { Memo } from "../types";
 import {
   openDB,
@@ -16,7 +16,7 @@ export function useMemos() {
   const memosRef = useRef<Memo[]>(memos);
   const saveSeqRef = useRef<Record<string, number>>({});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     memosRef.current = memos;
   });
 
