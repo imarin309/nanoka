@@ -14,8 +14,11 @@ export function useMemos() {
   const [error, setError] = useState<Error | null>(null);
   const dbRef = useRef<IDBDatabase | null>(null);
   const memosRef = useRef<Memo[]>(memos);
-  memosRef.current = memos;
   const saveSeqRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    memosRef.current = memos;
+  });
 
   useEffect(() => {
     let cancelled = false;

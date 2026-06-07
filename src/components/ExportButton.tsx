@@ -5,7 +5,12 @@ type Props = {
   className?: string;
 };
 
-export function ExportButton({ label, onClick, ariaLabel, className = "" }: Props) {
+export function ExportButton({
+  label,
+  onClick,
+  ariaLabel,
+  className = "",
+}: Props) {
   return (
     <button
       onClick={onClick}

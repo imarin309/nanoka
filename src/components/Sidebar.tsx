@@ -175,13 +175,19 @@ export function Sidebar({
                 </button>
                 <ExportButton
                   label=".txt"
-                  onClick={(e) => { e.stopPropagation(); exportAsText(memo); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportAsText(memo);
+                  }}
                   ariaLabel="テキストで保存"
                   className="ml-2"
                 />
                 <ExportButton
                   label="PDF"
-                  onClick={(e) => { e.stopPropagation(); exportAsPDF(memo); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportAsPDF(memo);
+                  }}
                   ariaLabel="PDFで保存"
                   className="ml-1"
                 />
