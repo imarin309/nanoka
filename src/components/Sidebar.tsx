@@ -1,4 +1,79 @@
 import type { Memo } from "../types";
+import { ExportButton } from "./ExportButton";
+
+function sanitizeFilename(name: string): string {
+  return name.replace(/[\\/:*?"<>|]/g, "_").trim() || "メモ";
+}
+
+function exportAsText(memo: Memo) {
+  const text = [memo.title, "", memo.content].join("\n");
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${sanitizeFilename(memo.title)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+function exportAsPDF(memo: Memo) {
+  const style = document.createElement("style");
+  style.textContent = `
+    @media print {
+      body > *:not(#print-memo) { display: none !important; }
+      #print-memo {
+        display: block !important;
+        font-family: sans-serif;
+        padding: 20px;
+        color: #333;
+      }
+      #print-memo h1 {
+        font-size: 24px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 12px;
+      }
+      #print-memo pre {
+        white-space: pre-wrap;
+        font-family: inherit;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+    }
+  `;
+
+  const container = document.createElement("div");
+  container.id = "print-memo";
+  container.style.display = "none";
+
+  const h1 = document.createElement("h1");
+  h1.textContent = memo.title || "メモ";
+  const pre = document.createElement("pre");
+  pre.textContent = memo.content;
+
+  container.appendChild(h1);
+  container.appendChild(pre);
+  document.head.appendChild(style);
+  document.body.appendChild(container);
+
+  const prevTitle = document.title;
+  document.title = memo.title || "メモ";
+
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    document.title = prevTitle;
+    style.parentNode?.removeChild(style);
+    container.parentNode?.removeChild(container);
+    window.removeEventListener("afterprint", cleanup);
+  };
+  window.addEventListener("afterprint", cleanup);
+  window.print();
+  cleanup();
+}
 
 type Props = {
   isOpen: boolean;
@@ -112,6 +187,24 @@ export function Sidebar({
                     {memo.title || "（タイトルなし）"}
                   </p>
                 </button>
+                <ExportButton
+                  label=".txt"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportAsText(memo);
+                  }}
+                  ariaLabel="テキストで保存"
+                  className="ml-2"
+                />
+                <ExportButton
+                  label="PDF"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportAsPDF(memo);
+                  }}
+                  ariaLabel="PDFで保存"
+                  className="ml-1"
+                />
                 <button
                   onClick={(e) => handleDelete(e, memo.id)}
                   className="shrink-0 active:opacity-50 pl-3"
