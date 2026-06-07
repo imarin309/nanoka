@@ -24,7 +24,7 @@ export function useMemos() {
 
   useLayoutEffect(() => {
     memosRef.current = memos;
-  });
+  }, [memos]);
 
   useEffect(() => {
     let cancelled = false;

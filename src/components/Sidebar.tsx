@@ -12,7 +12,9 @@ function exportAsText(memo: Memo) {
   const a = document.createElement("a");
   a.href = url;
   a.download = `${sanitizeFilename(memo.title)}.txt`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
@@ -59,14 +61,18 @@ function exportAsPDF(memo: Memo) {
   const prevTitle = document.title;
   document.title = memo.title || "メモ";
 
+  let cleaned = false;
   const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
     document.title = prevTitle;
-    document.head.removeChild(style);
-    document.body.removeChild(container);
+    style.parentNode?.removeChild(style);
+    container.parentNode?.removeChild(container);
     window.removeEventListener("afterprint", cleanup);
   };
   window.addEventListener("afterprint", cleanup);
   window.print();
+  cleanup();
 }
 
 type Props = {
