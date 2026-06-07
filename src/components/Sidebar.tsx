@@ -33,15 +33,18 @@ function exportAsPDF(memo: Memo) {
 <title>${esc(title)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:32px 24px;color:#333;line-height:1.7}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:24px;color:#333;line-height:1.7}
+#bar{display:flex;justify-content:flex-end;margin-bottom:24px}
+button{padding:10px 20px;background:#d4a9a0;color:#fff;border:none;border-radius:20px;font-size:14px;font-weight:bold;cursor:pointer}
 h1{font-size:20px;font-weight:bold;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #eee}
 pre{white-space:pre-wrap;word-break:break-all;font-family:inherit;font-size:15px}
+@media print{#bar{display:none}}
 </style>
 </head>
 <body>
+<div id="bar"><button onclick="window.print()">PDFで保存</button></div>
 <h1>${esc(title)}</h1>
 <pre>${esc(memo.content)}</pre>
-<script>window.addEventListener('load',function(){document.title=${JSON.stringify(title)};window.print()})</script>
 </body>
 </html>`;
 
