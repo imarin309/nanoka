@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { Memo } from "../types";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { ExportButton } from "./ExportButton";
 
 function sanitizeFilename(name: string): string {
@@ -19,60 +21,34 @@ function exportAsText(memo: Memo) {
 }
 
 function exportAsPDF(memo: Memo) {
-  const style = document.createElement("style");
-  style.textContent = `
-    @media print {
-      body > *:not(#print-memo) { display: none !important; }
-      #print-memo {
-        display: block !important;
-        font-family: sans-serif;
-        padding: 20px;
-        color: #333;
-      }
-      #print-memo h1 {
-        font-size: 24px;
-        margin-bottom: 24px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 12px;
-      }
-      #print-memo pre {
-        white-space: pre-wrap;
-        font-family: inherit;
-        font-size: 15px;
-        line-height: 1.6;
-      }
-    }
-  `;
+  const title = memo.title || "メモ";
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  const container = document.createElement("div");
-  container.id = "print-memo";
-  container.style.display = "none";
+  const html = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:32px 24px;color:#333;line-height:1.7}
+h1{font-size:20px;font-weight:bold;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #eee}
+pre{white-space:pre-wrap;word-break:break-all;font-family:inherit;font-size:15px}
+</style>
+</head>
+<body>
+<h1>${esc(title)}</h1>
+<pre>${esc(memo.content)}</pre>
+<script>window.addEventListener('load',function(){document.title=${JSON.stringify(title)};window.print()})</script>
+</body>
+</html>`;
 
-  const h1 = document.createElement("h1");
-  h1.textContent = memo.title || "メモ";
-  const pre = document.createElement("pre");
-  pre.textContent = memo.content;
-
-  container.appendChild(h1);
-  container.appendChild(pre);
-  document.head.appendChild(style);
-  document.body.appendChild(container);
-
-  const prevTitle = document.title;
-  document.title = memo.title || "メモ";
-
-  let cleaned = false;
-  const cleanup = () => {
-    if (cleaned) return;
-    cleaned = true;
-    document.title = prevTitle;
-    style.parentNode?.removeChild(style);
-    container.parentNode?.removeChild(container);
-    window.removeEventListener("afterprint", cleanup);
-  };
-  window.addEventListener("afterprint", cleanup);
-  window.print();
-  cleanup();
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
 }
 
 type Props = {
@@ -94,6 +70,8 @@ export function Sidebar({
   onNew,
   onDelete,
 }: Props) {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   const handleSelect = (id: string) => {
     onSelect(id);
     onClose();
@@ -106,11 +84,27 @@ export function Sidebar({
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    onDelete(id);
+    setPendingDeleteId(id);
+  };
+
+  const handleConfirmDelete = () => {
+    if (pendingDeleteId) onDelete(pendingDeleteId);
+    setPendingDeleteId(null);
+  };
+
+  const handleCancelDelete = () => {
+    setPendingDeleteId(null);
   };
 
   return (
     <>
+      {pendingDeleteId && (
+        <ConfirmDialog
+          message="このメモを削除しますか？"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
+      )}
       {/* オーバーレイ */}
       <div
         className={`fixed inset-0 z-20 transition-opacity duration-300 ${
@@ -125,7 +119,7 @@ export function Sidebar({
       {/* ドロワー */}
       <div
         className={`fixed top-0 right-0 h-full z-30 flex flex-col transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "translate-x-full"
+          isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
         }`}
         style={{
           width: "75vw",
