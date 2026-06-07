@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { Memo } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ExportButton } from "./ExportButton";
@@ -20,44 +21,83 @@ function exportAsText(memo: Memo) {
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
-function exportAsPDF(memo: Memo) {
-  const title = memo.title || "メモ";
-  const esc = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function PrintOverlay({ memo, onClose }: { memo: Memo; onClose: () => void }) {
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `@media print{body>*:not(#nanoka-print){display:none!important}#nanoka-print-bar{display:none!important}}`;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, []);
 
-  const html = `<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)}</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:24px;color:#333;line-height:1.7}
-#bar{display:flex;justify-content:flex-end;margin-bottom:24px}
-button{padding:10px 20px;background:#d4a9a0;color:#fff;border:none;border-radius:20px;font-size:14px;font-weight:bold;cursor:pointer}
-h1{font-size:20px;font-weight:bold;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #eee}
-pre{white-space:pre-wrap;word-break:break-all;font-family:inherit;font-size:15px}
-@media print{#bar{display:none}}
-</style>
-</head>
-<body>
-<div id="bar"><button onclick="window.print()">PDFで保存</button></div>
-<h1>${esc(title)}</h1>
-<pre>${esc(memo.content)}</pre>
-</body>
-</html>`;
-
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return createPortal(
+    <div
+      id="nanoka-print"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "white",
+        zIndex: 9999,
+        overflowY: "auto",
+        fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif",
+        color: "#333",
+        lineHeight: 1.7,
+      }}
+    >
+      <div
+        id="nanoka-print-bar"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "14px 20px",
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        <button
+          onClick={onClose}
+          style={{
+            background: "none",
+            border: "none",
+            fontSize: 22,
+            cursor: "pointer",
+            color: "#999",
+            lineHeight: 1,
+            flexShrink: 0,
+          }}
+          aria-label="閉じる"
+        >
+          ×
+        </button>
+        <p style={{ fontSize: 13, color: "#888" }}>
+          共有ボタン → 印刷 でPDF保存できます
+        </p>
+      </div>
+      <div style={{ padding: "32px 24px" }}>
+        <h1
+          style={{
+            fontSize: 20,
+            fontWeight: "bold",
+            marginBottom: 20,
+            paddingBottom: 12,
+            borderBottom: "1px solid #eee",
+          }}
+        >
+          {memo.title || "メモ"}
+        </h1>
+        <pre
+          style={{
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
+            fontFamily: "inherit",
+            fontSize: 15,
+          }}
+        >
+          {memo.content}
+        </pre>
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 type Props = {
@@ -80,6 +120,7 @@ export function Sidebar({
   onDelete,
 }: Props) {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [printMemo, setPrintMemo] = useState<Memo | null>(null);
 
   const handleSelect = (id: string) => {
     onSelect(id);
@@ -113,6 +154,9 @@ export function Sidebar({
           onConfirm={handleConfirmDelete}
           onCancel={handleCancelDelete}
         />
+      )}
+      {printMemo && (
+        <PrintOverlay memo={printMemo} onClose={() => setPrintMemo(null)} />
       )}
       {/* オーバーレイ */}
       <div
@@ -203,7 +247,7 @@ export function Sidebar({
                   label="PDF"
                   onClick={(e) => {
                     e.stopPropagation();
-                    exportAsPDF(memo);
+                    setPrintMemo(memo);
                   }}
                   ariaLabel="PDFで保存"
                   className="ml-1"
