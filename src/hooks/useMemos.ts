@@ -1,4 +1,10 @@
-import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+} from "react";
 import type { Memo } from "../types";
 import {
   openDB,
