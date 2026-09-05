@@ -1,5 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Memo } from "../types";
+import type { Template } from "../lib/templates";
+import { TEMPLATES, insertTemplate } from "../lib/templates";
+import { TemplateButton } from "./TemplateButton";
+import { TemplatePicker } from "./TemplatePicker";
 
 type Props = {
   memo: Memo | null;
@@ -12,6 +16,7 @@ type Props = {
 
 export function MemoEditor({ memo, onUpdate, onNew }: Props) {
   const contentRef = useRef<HTMLTextAreaElement>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   useEffect(() => {
     const el = contentRef.current;
@@ -19,6 +24,12 @@ export function MemoEditor({ memo, onUpdate, onNew }: Props) {
     el.style.height = "auto";
     el.style.height = el.scrollHeight + "px";
   }, [memo?.content]);
+
+  const applyTemplate = (template: Template) => {
+    if (!memo) return;
+    onUpdate(memo.id, { content: insertTemplate(memo.content, template) });
+    setIsPickerOpen(false);
+  };
 
   if (!memo) {
     return (
@@ -53,6 +64,16 @@ export function MemoEditor({ memo, onUpdate, onNew }: Props) {
           minHeight: "60vh",
         }}
       />
+
+      <TemplateButton onClick={() => setIsPickerOpen(true)} />
+
+      {isPickerOpen && (
+        <TemplatePicker
+          templates={TEMPLATES}
+          onSelect={applyTemplate}
+          onClose={() => setIsPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }
