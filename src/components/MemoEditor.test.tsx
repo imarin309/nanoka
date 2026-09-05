@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Memo } from "../types";
+import { TEMPLATES, renderTemplate } from "../lib/templates";
 import { MemoEditor } from "./MemoEditor";
 
 const memo: Memo = {
@@ -38,5 +39,33 @@ describe("MemoEditor", () => {
     await userEvent.type(screen.getByRole("textbox"), "！");
 
     expect(onUpdate).toHaveBeenCalledWith("a", { content: "本文！" });
+  });
+
+  it("テンプレを選ぶと本文の末尾に足す", async () => {
+    const onUpdate = vi.fn();
+    render(<MemoEditor memo={memo} onUpdate={onUpdate} onNew={vi.fn()} />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "テンプレを挿入" }),
+    );
+    const template = TEMPLATES[0];
+    await userEvent.click(screen.getByRole("button", { name: template.name }));
+
+    expect(onUpdate).toHaveBeenCalledWith("a", {
+      content: `本文\n\n${renderTemplate(template.body).trimEnd()}`,
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("テンプレ選択はとじられる", async () => {
+    render(<MemoEditor memo={memo} onUpdate={vi.fn()} onNew={vi.fn()} />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "テンプレを挿入" }),
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "とじる" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
