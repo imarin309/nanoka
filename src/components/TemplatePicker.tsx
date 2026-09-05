@@ -24,7 +24,8 @@ export function TemplatePicker({ templates, onSelect, onClose }: Props) {
     >
       <div
         role="dialog"
-        aria-label="テンプレを選ぶ"
+        aria-modal="true"
+        aria-labelledby="template-picker-title"
         className="rounded-2xl px-7 py-6 flex flex-col gap-4"
         style={{
           background: "rgba(255,255,255,0.85)",
@@ -36,7 +37,11 @@ export function TemplatePicker({ templates, onSelect, onClose }: Props) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-sm text-center" style={{ color: "#555" }}>
+        <p
+          id="template-picker-title"
+          className="text-sm text-center"
+          style={{ color: "#555" }}
+        >
           テンプレを選ぶ
         </p>
         <div className="flex flex-col gap-2">

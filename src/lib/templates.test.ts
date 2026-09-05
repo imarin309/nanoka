@@ -34,6 +34,11 @@ describe("renderTemplate", () => {
     expect(renderTemplate("{{unknown}}")).toBe("{{unknown}}");
   });
 
+  it("Object のプロトタイプにあるだけの名前は差し込み文字にしない", () => {
+    expect(renderTemplate("{{toString}}")).toBe("{{toString}}");
+    expect(renderTemplate("{{constructor}}")).toBe("{{constructor}}");
+  });
+
   it("差し込み文字がなければ何も変えない", () => {
     expect(renderTemplate("■ 見出し")).toBe("■ 見出し");
   });

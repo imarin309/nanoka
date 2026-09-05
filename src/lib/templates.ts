@@ -37,9 +37,9 @@ const PLACEHOLDERS: Record<string, () => string> = {
 };
 
 export function renderTemplate(body: string): string {
-  return body.replace(
-    /\{\{(\w+)\}\}/g,
-    (matched, key: string) => PLACEHOLDERS[key]?.() ?? matched,
+  // プロトタイプ由来のキー（{{toString}} など）を差し込み文字として拾わないため
+  return body.replace(/\{\{(\w+)\}\}/g, (matched, key: string) =>
+    Object.hasOwn(PLACEHOLDERS, key) ? PLACEHOLDERS[key]() : matched,
   );
 }
 
