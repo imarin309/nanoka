@@ -1,0 +1,64 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # 相互にバージョンが連動するものは major も含めてまとめる。
+      # 個別に上げると片方だけ新しくなり、CI が通らない or 実行時に壊れるため
+      react:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
+      vite:
+        patterns:
+          - vite
+          - "@vitejs/*"
+          - vitest
+          - "@vitest/*"
+      tailwind:
+        patterns:
+          - tailwindcss
+          - "@tailwindcss/*"
+      eslint:
+        patterns:
+          - eslint
+          - "eslint-*"
+          - "@eslint/*"
+          - typescript-eslint
+      testing-library:
+        patterns:
+          - "@testing-library/*"
+      # 残りは minor / patch をまとめ、major だけ個別 PR にしてレビューできるようにする
+      others:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+    groups:
+      actions:
+        patterns:
+          - "*"
