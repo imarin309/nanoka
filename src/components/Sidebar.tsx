@@ -3,10 +3,7 @@ import { createPortal } from "react-dom";
 import type { Memo } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ExportButton } from "./ExportButton";
-
-function sanitizeFilename(name: string): string {
-  return name.replace(/[\\/:*?"<>|]/g, "_").trim() || "メモ";
-}
+import { sanitizeFilename } from "../lib/filename";
 
 function exportAsText(memo: Memo) {
   const text = [memo.title, "", memo.content].join("\n");
