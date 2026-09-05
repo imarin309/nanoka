@@ -17,6 +17,17 @@ describe("pickCharacter", () => {
     expect(pickCharacter(seed)).toBe(pickCharacter(seed));
   });
 
+  // 既存メモのキャラクターが変わらないよう、seed と画像の対応そのものを固定する。
+  // 画像を増減させると全メモで入れ替わるため、その場合はここも意図して更新する
+  it("seed と画像の対応を保つ", () => {
+    const filename = (seed: string) => pickCharacter(seed).split("/").pop();
+
+    expect(filename("default")).toMatch(/^ikari[.-]/);
+    expect(filename("memo-1")).toMatch(/^three2[.-]/);
+    expect(filename("memo-2")).toMatch(/^three3[.-]/);
+    expect(filename("memo-3")).toMatch(/^funny[.-]/);
+  });
+
   it("seed によって結果が分かれる", () => {
     const picked = new Set(
       Array.from({ length: 200 }, (_, i) => pickCharacter(`memo-${i}`)),
