@@ -4,22 +4,7 @@ import { Sidebar } from "./components/Sidebar";
 import { MemoEditor } from "./components/MemoEditor";
 import { TitleInput } from "./components/TitleInput";
 import { AnpanButton } from "./components/AnpanButton";
-
-const imageUrls = Object.values(
-  import.meta.glob<string>("./assets/image/*.png", {
-    eager: true,
-    query: "?url",
-    import: "default",
-  }),
-);
-
-function pickCharacter(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-  return imageUrls[hash % imageUrls.length];
-}
+import { pickCharacter } from "./lib/character";
 
 export default function App() {
   const {
