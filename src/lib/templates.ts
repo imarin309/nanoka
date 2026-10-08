@@ -17,6 +17,18 @@ export const TEMPLATES: Template[] = [
 `,
   },
   {
+    id: "fighting-game-review",
+    name: "格ゲーメモ_振り返り",
+    body: `{{date}}
+・目標:
+・立ち回り:
+・起き攻め:
+・被起き攻め:
+・コンボ:
+・課題:
+`,
+  },
+  {
     id: "diary",
     name: "日記",
     body: `{{date}}`,
