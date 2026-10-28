@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import type { Memo } from "../types";
+import type { Memo, MemoMode } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ExportButton } from "./ExportButton";
 import { sanitizeFilename } from "../lib/filename";
+import { memoBodyText } from "../lib/diary";
 
 function exportAsText(memo: Memo) {
-  const text = [memo.title, "", memo.content].join("\n");
+  const text = [memo.title, "", memoBodyText(memo)].join("\n");
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -89,7 +90,7 @@ function PrintOverlay({ memo, onClose }: { memo: Memo; onClose: () => void }) {
             fontSize: 15,
           }}
         >
-          {memo.content}
+          {memoBodyText(memo)}
         </pre>
       </div>
     </div>,
@@ -103,7 +104,7 @@ type Props = {
   memos: Memo[];
   currentId: string | null;
   onSelect: (id: string) => void;
-  onNew: () => void;
+  onNew: (mode: MemoMode) => void;
   onDelete: (id: string) => void;
 };
 
@@ -124,8 +125,8 @@ export function Sidebar({
     onClose();
   };
 
-  const handleNew = () => {
-    onNew();
+  const handleNew = (mode: MemoMode) => {
+    onNew(mode);
     onClose();
   };
 
@@ -193,13 +194,20 @@ export function Sidebar({
         </div>
 
         {/* 新規ボタン */}
-        <div className="px-5 pb-4">
+        <div className="px-5 pb-4 flex gap-5">
           <button
-            onClick={handleNew}
+            onClick={() => handleNew("normal")}
             className="text-sm font-bold active:opacity-50"
             style={{ color: "#d4a9a0" }}
           >
             ＋ 新しいメモ
+          </button>
+          <button
+            onClick={() => handleNew("diary")}
+            className="text-sm font-bold active:opacity-50"
+            style={{ color: "#d4a9a0" }}
+          >
+            ＋ 新しい日記
           </button>
         </div>
 

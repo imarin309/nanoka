@@ -5,7 +5,7 @@ import {
   useCallback,
   useRef,
 } from "react";
-import type { Memo } from "../types";
+import type { Memo, MemoMode, MemoPatch } from "../types";
 import {
   openDB,
   getAllMemos,
@@ -64,7 +64,7 @@ export function useMemos() {
 
   const currentMemo = memos.find((m) => m.id === currentId) ?? null;
 
-  const createMemo = useCallback(async () => {
+  const createMemo = useCallback(async (mode: MemoMode = "normal") => {
     const db = dbRef.current;
     if (!db) {
       setError(new Error("Database not initialized"));
@@ -82,6 +82,8 @@ export function useMemos() {
       content: "",
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      mode,
+      ...(mode === "diary" && { entries: [] }),
     };
     try {
       await putMemo(db, newMemo);
@@ -94,36 +96,33 @@ export function useMemos() {
     return newMemo.id;
   }, []);
 
-  const updateMemo = useCallback(
-    async (id: string, patch: Partial<Pick<Memo, "title" | "content">>) => {
-      const db = dbRef.current;
-      if (!db) return;
+  const updateMemo = useCallback(async (id: string, patch: MemoPatch) => {
+    const db = dbRef.current;
+    if (!db) return;
 
-      const found = memosRef.current.find((m) => m.id === id);
-      if (!found) return;
+    const found = memosRef.current.find((m) => m.id === id);
+    if (!found) return;
 
-      saveSeqRef.current[id] = (saveSeqRef.current[id] ?? 0) + 1;
-      const seq = saveSeqRef.current[id];
+    saveSeqRef.current[id] = (saveSeqRef.current[id] ?? 0) + 1;
+    const seq = saveSeqRef.current[id];
 
-      const nextMemo: Memo = { ...found, ...patch, updatedAt: Date.now() };
-      setMemos((prev) => prev.map((m) => (m.id === id ? nextMemo : m)));
+    const nextMemo: Memo = { ...found, ...patch, updatedAt: Date.now() };
+    setMemos((prev) => prev.map((m) => (m.id === id ? nextMemo : m)));
 
-      try {
-        await putMemo(db, nextMemo);
-        // putMemo 完了後、awaiting 中に deleteMemo が走っていた場合は DB から削除して整合を保つ
-        if (!memosRef.current.some((m) => m.id === id)) {
-          await deleteMemoFromDB(db, id).catch(() => {});
-        }
-      } catch (e) {
-        // 最新の呼び出しのみがロールバックを担う（古い失敗が後続の成功を巻き戻さないよう）
-        if (saveSeqRef.current[id] === seq) {
-          setError(e instanceof Error ? e : new Error(String(e)));
-          setMemos((prev) => prev.map((m) => (m.id === id ? found : m)));
-        }
+    try {
+      await putMemo(db, nextMemo);
+      // putMemo 完了後、awaiting 中に deleteMemo が走っていた場合は DB から削除して整合を保つ
+      if (!memosRef.current.some((m) => m.id === id)) {
+        await deleteMemoFromDB(db, id).catch(() => {});
       }
-    },
-    [],
-  );
+    } catch (e) {
+      // 最新の呼び出しのみがロールバックを担う（古い失敗が後続の成功を巻き戻さないよう）
+      if (saveSeqRef.current[id] === seq) {
+        setError(e instanceof Error ? e : new Error(String(e)));
+        setMemos((prev) => prev.map((m) => (m.id === id ? found : m)));
+      }
+    }
+  }, []);
 
   const deleteMemo = useCallback(async (id: string) => {
     if (dbRef.current) {

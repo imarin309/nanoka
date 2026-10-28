@@ -96,6 +96,30 @@ describe("createMemo", () => {
     expect(result.current.currentMemo?.content).toBe("");
   });
 
+  it("モードを省略すると通常メモになる", async () => {
+    const { result } = await renderUseMemos();
+
+    await act(async () => {
+      await result.current.createMemo();
+    });
+
+    expect(result.current.currentMemo?.mode).toBe("normal");
+    expect(result.current.currentMemo?.entries).toBeUndefined();
+  });
+
+  it("日記モードではカードなしの日記を作る", async () => {
+    const { result } = await renderUseMemos();
+
+    await act(async () => {
+      await result.current.createMemo("diary");
+    });
+
+    expect(result.current.currentMemo).toMatchObject({
+      mode: "diary",
+      entries: [],
+    });
+  });
+
   it("追加したメモを永続化する", async () => {
     const { result } = await renderUseMemos();
 
@@ -138,6 +162,19 @@ describe("updateMemo", () => {
     expect(await storedMemos()).toMatchObject([
       { id: "a", title: "新タイトル", content: "新本文" },
     ]);
+  });
+
+  it("日記のカードを更新して永続化する", async () => {
+    await seed({ ...memo("a", 100), mode: "diary", entries: [] });
+    const { result } = await renderUseMemos();
+    const entries = [{ date: "2026-09-05", content: "晴れ" }];
+
+    await act(async () => {
+      await result.current.updateMemo("a", { entries });
+    });
+
+    expect(result.current.currentMemo?.entries).toEqual(entries);
+    expect(await storedMemos()).toMatchObject([{ id: "a", entries }]);
   });
 
   it("updatedAt を進める", async () => {

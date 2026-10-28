@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useMemos } from "./hooks/useMemos";
 import { Sidebar } from "./components/Sidebar";
 import { MemoEditor } from "./components/MemoEditor";
+import { DiaryEditor } from "./components/DiaryEditor";
 import { TitleInput } from "./components/TitleInput";
 import { AnpanButton } from "./components/AnpanButton";
 import { pickCharacter } from "./lib/character";
@@ -45,11 +46,15 @@ export default function App() {
 
           {/* エディタ（本文のみ） */}
           <div className="flex-1 flex flex-col">
-            <MemoEditor
-              memo={currentMemo}
-              onUpdate={updateMemo}
-              onNew={createMemo}
-            />
+            {currentMemo?.mode === "diary" ? (
+              <DiaryEditor memo={currentMemo} onUpdate={updateMemo} />
+            ) : (
+              <MemoEditor
+                memo={currentMemo}
+                onUpdate={updateMemo}
+                onNew={() => createMemo()}
+              />
+            )}
           </div>
         </div>
 
