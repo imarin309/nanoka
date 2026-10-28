@@ -54,7 +54,10 @@ export function DiaryEditor({ memo, onUpdate }: Props) {
           onLeave={() => handleLeave(entry.id)}
         />
       ))}
+      {/* 押した瞬間に空カードの blur で削除が走ると、ボタンが上へずれて click が成立しない。
+          フォーカスを動かさず、追加したカードの autoFocus で空カードを外す */}
       <button
+        onMouseDown={(e) => e.preventDefault()}
         onClick={handleAdd}
         className="self-center w-12 h-12 rounded-full flex items-center justify-center text-2xl active:opacity-60 transition-opacity"
         style={{
@@ -108,7 +111,7 @@ function DiaryCard({
     >
       {/* showPicker() は古い iOS Safari で開かないため、透明な日付入力を重ねてタップを直接受ける */}
       <label
-        className="relative self-start text-xs font-bold"
+        className="relative self-start rounded text-xs font-bold focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#80625b]"
         style={{ color: "#80625b" }}
       >
         {label}

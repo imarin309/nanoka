@@ -114,6 +114,20 @@ describe("DiaryEditor", () => {
     expect(screen.queryAllByRole("textbox")).toHaveLength(0);
   });
 
+  it("空カードから＋を押しても、押している間にカードを消さない", async () => {
+    render(<StatefulDiary initial={[]} />);
+    const add = screen.getByRole("button", { name: "カードを追加" });
+
+    await userEvent.click(add);
+    await userEvent.pointer({ keys: "[MouseLeft>]", target: add });
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
+
+    await userEvent.pointer({ keys: "[/MouseLeft]", target: add });
+    const cards = screen.getAllByRole("textbox");
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toHaveFocus();
+  });
+
   it("空でも日付の入力へ移るだけなら消さない", async () => {
     render(<StatefulDiary initial={[]} />);
 
