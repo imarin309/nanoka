@@ -63,7 +63,16 @@ describe("Sidebar", () => {
 
     await userEvent.click(screen.getByText("＋ 新しいメモ"));
 
-    expect(props.onNew).toHaveBeenCalledOnce();
+    expect(props.onNew).toHaveBeenCalledExactlyOnceWith("normal");
+    expect(props.onClose).toHaveBeenCalledOnce();
+  });
+
+  it("新しい日記を作ると閉じる", async () => {
+    const props = renderSidebar();
+
+    await userEvent.click(screen.getByText("＋ 新しい日記"));
+
+    expect(props.onNew).toHaveBeenCalledExactlyOnceWith("diary");
     expect(props.onClose).toHaveBeenCalledOnce();
   });
 
