@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Memo } from "../types";
 import {
-  entriesWithToday,
+  addEntry,
   formatDateKey,
   memoBodyText,
+  removeEmptyEntry,
   toDateKey,
-  upsertEntry,
+  updateEntry,
 } from "./diary";
 
 describe("toDateKey", () => {
@@ -20,49 +21,65 @@ describe("formatDateKey", () => {
   });
 });
 
-describe("upsertEntry", () => {
-  it("新しい日付のカードを新しい順に差し込む", () => {
+describe("addEntry", () => {
+  it("日付の新しい順に差し込む", () => {
     const entries = [
-      { date: "2026-09-05", content: "a" },
-      { date: "2026-09-01", content: "b" },
+      { id: "1", date: "2026-09-05", content: "a" },
+      { id: "2", date: "2026-09-01", content: "b" },
     ];
 
-    expect(upsertEntry(entries, "2026-09-03", "c").map((e) => e.date)).toEqual([
-      "2026-09-05",
-      "2026-09-03",
-      "2026-09-01",
-    ]);
+    expect(
+      addEntry(entries, { id: "3", date: "2026-09-03", content: "" }).map(
+        (e) => e.id,
+      ),
+    ).toEqual(["1", "3", "2"]);
   });
 
-  it("同じ日付のカードは書き換える", () => {
-    const entries = [{ date: "2026-09-05", content: "a" }];
+  it("同じ日付なら後から足したカードを上にする", () => {
+    const entries = [{ id: "1", date: "2026-09-05", content: "朝" }];
 
-    expect(upsertEntry(entries, "2026-09-05", "b")).toEqual([
-      { date: "2026-09-05", content: "b" },
-    ]);
-  });
-
-  it("空にしたカードは取り除く", () => {
-    const entries = [{ date: "2026-09-05", content: "a" }];
-
-    expect(upsertEntry(entries, "2026-09-05", "")).toEqual([]);
+    expect(
+      addEntry(entries, { id: "2", date: "2026-09-05", content: "" }).map(
+        (e) => e.id,
+      ),
+    ).toEqual(["2", "1"]);
   });
 });
 
-describe("entriesWithToday", () => {
-  it("今日のカードがなければ空のカードを足す", () => {
-    const entries = [{ date: "2026-09-01", content: "a" }];
+describe("updateEntry", () => {
+  const entries = [
+    { id: "1", date: "2026-09-05", content: "a" },
+    { id: "2", date: "2026-09-01", content: "b" },
+  ];
 
-    expect(entriesWithToday(entries, "2026-09-05")).toEqual([
-      { date: "2026-09-05", content: "" },
-      { date: "2026-09-01", content: "a" },
+  it("指定したカードの本文を書き換える", () => {
+    expect(updateEntry(entries, "2", { content: "c" })).toEqual([
+      { id: "1", date: "2026-09-05", content: "a" },
+      { id: "2", date: "2026-09-01", content: "c" },
     ]);
   });
 
-  it("今日のカードがあればそのまま", () => {
-    const entries = [{ date: "2026-09-05", content: "a" }];
+  it("日付を変えたら並び直す", () => {
+    expect(
+      updateEntry(entries, "2", { date: "2026-09-10" }).map((e) => e.id),
+    ).toEqual(["2", "1"]);
+  });
+});
 
-    expect(entriesWithToday(entries, "2026-09-05")).toEqual(entries);
+describe("removeEmptyEntry", () => {
+  it("空のカードを取り除く", () => {
+    const entries = [
+      { id: "1", date: "2026-09-05", content: "" },
+      { id: "2", date: "2026-09-01", content: "b" },
+    ];
+
+    expect(removeEmptyEntry(entries, "1").map((e) => e.id)).toEqual(["2"]);
+  });
+
+  it("本文のあるカードは残し、同じ配列を返す", () => {
+    const entries = [{ id: "1", date: "2026-09-05", content: "a" }];
+
+    expect(removeEmptyEntry(entries, "1")).toBe(entries);
   });
 });
 
@@ -84,8 +101,8 @@ describe("memoBodyText", () => {
       ...base,
       mode: "diary",
       entries: [
-        { date: "2026-09-05", content: "晴れ" },
-        { date: "2026-09-04", content: "雨" },
+        { id: "2", date: "2026-09-05", content: "晴れ" },
+        { id: "1", date: "2026-09-04", content: "雨" },
       ],
     };
 

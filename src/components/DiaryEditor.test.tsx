@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Memo } from "../types";
+import type { DiaryEntry, Memo, MemoPatch } from "../types";
 import { DiaryEditor } from "./DiaryEditor";
 
-function diary(entries: Memo["entries"]): Memo {
+function diary(entries: DiaryEntry[]): Memo {
   return {
     id: "a",
     title: "日記",
@@ -15,6 +16,17 @@ function diary(entries: Memo["entries"]): Memo {
     entries,
   };
 }
+
+// 追加・削除・並び替えは保存結果が画面に戻ってきて初めて見えるので、親の状態更新まで再現する
+function StatefulDiary({ initial }: { initial: DiaryEntry[] }) {
+  const [memo, setMemo] = useState(diary(initial));
+  const handleUpdate = (_id: string, patch: MemoPatch) =>
+    setMemo((m) => ({ ...m, ...patch }));
+  return <DiaryEditor memo={memo} onUpdate={handleUpdate} />;
+}
+
+const cardLabels = () =>
+  screen.getAllByRole("textbox").map((c) => c.getAttribute("aria-label"));
 
 // Date だけを固定する（タイマーまで偽物にすると userEvent が進まない）
 beforeEach(() => {
@@ -27,55 +39,99 @@ afterEach(() => {
 });
 
 describe("DiaryEditor", () => {
-  it("日付ごとのカードを新しい順に並べ、今日のカードを補う", () => {
+  it("カードごとに日付と本文を表示する", () => {
     render(
       <DiaryEditor
-        memo={diary([{ date: "2026-09-01", content: "前の日" }])}
+        memo={diary([
+          { id: "2", date: "2026-09-03", content: "後" },
+          { id: "1", date: "2026-09-01", content: "前" },
+        ])}
         onUpdate={vi.fn()}
       />,
     );
 
-    const cards = screen.getAllByRole("textbox");
-    expect(cards.map((c) => c.getAttribute("aria-label"))).toEqual([
-      "2026/09/05(土)",
-      "2026/09/01(火)",
+    expect(cardLabels()).toEqual(["2026/09/03(木)", "2026/09/01(火)"]);
+    expect(screen.getAllByRole("textbox").map((c) => c.textContent)).toEqual([
+      "後",
+      "前",
     ]);
+  });
+
+  it("＋で今日の日付の空カードを上に足し、書き始められるようにする", async () => {
+    render(
+      <StatefulDiary
+        initial={[{ id: "1", date: "2026-09-05", content: "朝" }]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "カードを追加" }));
+
+    const cards = screen.getAllByRole("textbox");
+    expect(cardLabels()).toEqual(["2026/09/05(土)", "2026/09/05(土)"]);
     expect(cards[0]).toHaveValue("");
-    expect(cards[1]).toHaveValue("前の日");
+    expect(cards[0]).toHaveFocus();
   });
 
-  it("今日のカードに書くとカードを追加して伝える", async () => {
+  it("本文の変更を伝える", async () => {
     const onUpdate = vi.fn();
     render(
       <DiaryEditor
-        memo={diary([{ date: "2026-09-01", content: "前の日" }])}
+        memo={diary([{ id: "1", date: "2026-09-01", content: "前" }])}
         onUpdate={onUpdate}
       />,
     );
 
-    await userEvent.type(screen.getByLabelText("2026/09/05(土)"), "晴");
+    await userEvent.type(screen.getByRole("textbox"), "！");
 
     expect(onUpdate).toHaveBeenCalledWith("a", {
-      entries: [
-        { date: "2026-09-05", content: "晴" },
-        { date: "2026-09-01", content: "前の日" },
-      ],
+      entries: [{ id: "1", date: "2026-09-01", content: "前！" }],
     });
   });
 
-  it("過去のカードも書き換えられる", async () => {
-    const onUpdate = vi.fn();
+  it("日付を変えると並び直す", () => {
     render(
-      <DiaryEditor
-        memo={diary([{ date: "2026-09-01", content: "前の日" }])}
-        onUpdate={onUpdate}
+      <StatefulDiary
+        initial={[
+          { id: "2", date: "2026-09-03", content: "a" },
+          { id: "1", date: "2026-09-01", content: "b" },
+        ]}
       />,
     );
 
-    await userEvent.type(screen.getByLabelText("2026/09/01(火)"), "！");
-
-    expect(onUpdate).toHaveBeenCalledWith("a", {
-      entries: [{ date: "2026-09-01", content: "前の日！" }],
+    fireEvent.change(screen.getByLabelText("2026/09/01(火)の日付を変える"), {
+      target: { value: "2026-09-04" },
     });
+
+    expect(cardLabels()).toEqual(["2026/09/04(金)", "2026/09/03(木)"]);
+  });
+
+  it("空のままカードの外へ出ると消す", async () => {
+    render(<StatefulDiary initial={[]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "カードを追加" }));
+    await userEvent.click(document.body);
+
+    expect(screen.queryAllByRole("textbox")).toHaveLength(0);
+  });
+
+  it("空でも日付の入力へ移るだけなら消さない", async () => {
+    render(<StatefulDiary initial={[]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "カードを追加" }));
+    await userEvent.click(
+      screen.getByLabelText("2026/09/05(土)の日付を変える"),
+    );
+
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
+  });
+
+  it("書いたカードは外へ出ても残す", async () => {
+    render(<StatefulDiary initial={[]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "カードを追加" }));
+    await userEvent.keyboard("晴れ");
+    await userEvent.click(document.body);
+
+    expect(screen.getByRole("textbox")).toHaveValue("晴れ");
   });
 });

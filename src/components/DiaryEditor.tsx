@@ -1,11 +1,13 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DiaryEntry, Memo, MemoPatch } from "../types";
 import {
-  entriesWithToday,
+  addEntry,
   formatDateKey,
+  removeEmptyEntry,
   toDateKey,
-  upsertEntry,
+  updateEntry,
 } from "../lib/diary";
+import { generateId } from "../lib/id";
 
 type Props = {
   memo: Memo;
@@ -14,10 +16,23 @@ type Props = {
 
 export function DiaryEditor({ memo, onUpdate }: Props) {
   const entries = memo.entries ?? [];
-  const today = toDateKey(new Date());
+  const [addedId, setAddedId] = useState<string | null>(null);
 
-  const handleChange = (date: string, content: string) => {
-    onUpdate(memo.id, { entries: upsertEntry(entries, date, content) });
+  const save = (next: DiaryEntry[]) => onUpdate(memo.id, { entries: next });
+
+  const handleAdd = () => {
+    const entry: DiaryEntry = {
+      id: generateId(),
+      date: toDateKey(new Date()),
+      content: "",
+    };
+    save(addEntry(entries, entry));
+    setAddedId(entry.id);
+  };
+
+  const handleLeave = (id: string) => {
+    const next = removeEmptyEntry(entries, id);
+    if (next !== entries) save(next);
   };
 
   return (
@@ -25,25 +40,51 @@ export function DiaryEditor({ memo, onUpdate }: Props) {
       className="flex-1 flex flex-col gap-4 px-6 pb-48"
       style={{ marginTop: "40px" }}
     >
-      {entriesWithToday(entries, today).map((entry) => (
+      {entries.map((entry) => (
         <DiaryCard
-          key={entry.date}
+          key={entry.id}
           entry={entry}
-          isToday={entry.date === today}
-          onChange={(content) => handleChange(entry.date, content)}
+          autoFocus={entry.id === addedId}
+          onChangeContent={(content) =>
+            save(updateEntry(entries, entry.id, { content }))
+          }
+          onChangeDate={(date) =>
+            save(updateEntry(entries, entry.id, { date }))
+          }
+          onLeave={() => handleLeave(entry.id)}
         />
       ))}
+      <button
+        onClick={handleAdd}
+        className="self-center w-12 h-12 rounded-full flex items-center justify-center text-2xl active:opacity-60 transition-opacity"
+        style={{
+          background: "#fff",
+          color: "#c9a9a2",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
+        }}
+        aria-label="カードを追加"
+      >
+        ＋
+      </button>
     </div>
   );
 }
 
 type CardProps = {
   entry: DiaryEntry;
-  isToday: boolean;
-  onChange: (content: string) => void;
+  autoFocus: boolean;
+  onChangeContent: (content: string) => void;
+  onChangeDate: (date: string) => void;
+  onLeave: () => void;
 };
 
-function DiaryCard({ entry, isToday, onChange }: CardProps) {
+function DiaryCard({
+  entry,
+  autoFocus,
+  onChangeContent,
+  onChangeDate,
+  onLeave,
+}: CardProps) {
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const label = formatDateKey(entry.date);
 
@@ -54,19 +95,37 @@ function DiaryCard({ entry, isToday, onChange }: CardProps) {
     el.style.height = el.scrollHeight + "px";
   }, [entry.content]);
 
+  // 本文から日付へ移っただけで空のカードが消えないよう、カードの外へ出たときだけ扱う
+  const handleBlur = (e: React.FocusEvent<HTMLElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) onLeave();
+  };
+
   return (
     <section
+      onBlur={handleBlur}
       className="rounded-2xl px-5 py-4 flex flex-col gap-2"
       style={{ background: "#faf6f5" }}
     >
-      <p className="text-xs font-bold" style={{ color: "#c9a9a2" }}>
+      {/* showPicker() は古い iOS Safari で開かないため、透明な日付入力を重ねてタップを直接受ける */}
+      <label
+        className="relative self-start text-xs font-bold"
+        style={{ color: "#80625b" }}
+      >
         {label}
-      </p>
+        <input
+          type="date"
+          value={entry.date}
+          onChange={(e) => e.target.value && onChangeDate(e.target.value)}
+          aria-label={`${label}の日付を変える`}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+      </label>
       <textarea
         ref={contentRef}
         value={entry.content}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={isToday ? "今日のことを書こう..." : ""}
+        onChange={(e) => onChangeContent(e.target.value)}
+        autoFocus={autoFocus}
+        placeholder="ここに書こう..."
         aria-label={label}
         className="w-full bg-transparent border-none leading-relaxed"
         style={{

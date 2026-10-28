@@ -167,7 +167,7 @@ describe("updateMemo", () => {
   it("日記のカードを更新して永続化する", async () => {
     await seed({ ...memo("a", 100), mode: "diary", entries: [] });
     const { result } = await renderUseMemos();
-    const entries = [{ date: "2026-09-05", content: "晴れ" }];
+    const entries = [{ id: "1", date: "2026-09-05", content: "晴れ" }];
 
     await act(async () => {
       await result.current.updateMemo("a", { entries });

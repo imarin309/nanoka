@@ -14,26 +14,36 @@ export function formatDateKey(key: string): string {
   return `${year}/${pad(month)}/${pad(day)}(${WEEKDAYS[date.getDay()]})`;
 }
 
-/** 空にしたカードは残さない（今日のカードは表示側で補う） */
-export function upsertEntry(
-  entries: DiaryEntry[],
-  date: string,
-  content: string,
-): DiaryEntry[] {
-  const others = entries.filter((e) => e.date !== date);
-  return content === "" ? others : sortByNewest([...others, { date, content }]);
-}
-
-export function entriesWithToday(
-  entries: DiaryEntry[],
-  today: string,
-): DiaryEntry[] {
-  if (entries.some((e) => e.date === today)) return entries;
-  return sortByNewest([...entries, { date: today, content: "" }]);
-}
-
+// sort は安定なので、同じ日付どうしは配列の並びが保たれる。追加は先頭に入れることで、同じ日なら後から足したカードが上に来る
 function sortByNewest(entries: DiaryEntry[]): DiaryEntry[] {
   return entries.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function addEntry(
+  entries: DiaryEntry[],
+  entry: DiaryEntry,
+): DiaryEntry[] {
+  return sortByNewest([entry, ...entries]);
+}
+
+export function updateEntry(
+  entries: DiaryEntry[],
+  id: string,
+  patch: Partial<Pick<DiaryEntry, "date" | "content">>,
+): DiaryEntry[] {
+  return sortByNewest(
+    entries.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+  );
+}
+
+/** 消すものがなければ同じ配列を返すので、呼び出し側は参照比較で保存の要否を判断できる */
+export function removeEmptyEntry(
+  entries: DiaryEntry[],
+  id: string,
+): DiaryEntry[] {
+  const target = entries.find((e) => e.id === id);
+  if (!target || target.content !== "") return entries;
+  return entries.filter((e) => e.id !== id);
 }
 
 export function memoBodyText(memo: Memo): string {

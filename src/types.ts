@@ -1,6 +1,7 @@
 export type MemoMode = "normal" | "diary";
 
 export type DiaryEntry = {
+  id: string;
   /** ローカル日付の YYYY-MM-DD */
   date: string;
   content: string;
