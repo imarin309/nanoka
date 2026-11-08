@@ -110,4 +110,20 @@ describe("memoBodyText", () => {
       "2026/09/05(土)\n晴れ\n\n2026/09/04(金)\n雨",
     );
   });
+
+  it("課題は見出しと項目をテキストにする", () => {
+    const tasks: Memo = {
+      ...base,
+      mode: "task",
+      sections: [
+        {
+          id: "s",
+          title: "課題",
+          items: [{ id: "1", text: "対空", done: false }],
+        },
+      ],
+    };
+
+    expect(memoBodyText(tasks)).toBe("課題\n☐ 対空");
+  });
 });

@@ -3,6 +3,7 @@ import { useMemos } from "./hooks/useMemos";
 import { Sidebar } from "./components/Sidebar";
 import { MemoEditor } from "./components/MemoEditor";
 import { DiaryEditor } from "./components/DiaryEditor";
+import { TaskEditor } from "./components/TaskEditor";
 import { TitleInput } from "./components/TitleInput";
 import { AnpanButton } from "./components/AnpanButton";
 import { pickCharacter } from "./lib/character";
@@ -48,6 +49,8 @@ export default function App() {
           <div className="flex-1 flex flex-col">
             {currentMemo?.mode === "diary" ? (
               <DiaryEditor memo={currentMemo} onUpdate={updateMemo} />
+            ) : currentMemo?.mode === "task" ? (
+              <TaskEditor memo={currentMemo} onUpdate={updateMemo} />
             ) : (
               <MemoEditor
                 memo={currentMemo}

@@ -76,6 +76,25 @@ describe("Sidebar", () => {
     expect(props.onClose).toHaveBeenCalledOnce();
   });
 
+  it("新しい課題を作ると閉じる", async () => {
+    const props = renderSidebar();
+
+    await userEvent.click(screen.getByText("＋ 新しい課題"));
+
+    expect(props.onNew).toHaveBeenCalledExactlyOnceWith("task");
+    expect(props.onClose).toHaveBeenCalledOnce();
+  });
+
+  it("課題のメモには PDF の書き出しを出さない", () => {
+    renderSidebar([
+      memo("a", "買い物"),
+      { ...memo("b", "課題"), mode: "task" },
+    ]);
+
+    expect(screen.getAllByLabelText("PDFで保存")).toHaveLength(1);
+    expect(screen.getAllByLabelText("テキストで保存")).toHaveLength(2);
+  });
+
   it("削除は確認してから実行する", async () => {
     const props = renderSidebar();
 

@@ -120,6 +120,19 @@ describe("createMemo", () => {
     });
   });
 
+  it("課題モードでは空の見出しを1つ用意する", async () => {
+    const { result } = await renderUseMemos();
+
+    await act(async () => {
+      await result.current.createMemo("task");
+    });
+
+    expect(result.current.currentMemo).toMatchObject({
+      mode: "task",
+      sections: [{ title: "", items: [] }],
+    });
+  });
+
   it("追加したメモを永続化する", async () => {
     const { result } = await renderUseMemos();
 

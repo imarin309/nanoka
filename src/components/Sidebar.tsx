@@ -194,7 +194,7 @@ export function Sidebar({
         </div>
 
         {/* 新規ボタン */}
-        <div className="px-5 pb-4 flex gap-5">
+        <div className="px-5 pb-4 flex flex-wrap gap-x-5 gap-y-2">
           <button
             onClick={() => handleNew("normal")}
             className="text-sm font-bold active:opacity-50"
@@ -208,6 +208,13 @@ export function Sidebar({
             style={{ color: "#d4a9a0" }}
           >
             ＋ 新しい日記
+          </button>
+          <button
+            onClick={() => handleNew("task")}
+            className="text-sm font-bold active:opacity-50"
+            style={{ color: "#d4a9a0" }}
+          >
+            ＋ 新しい課題
           </button>
         </div>
 
@@ -248,15 +255,17 @@ export function Sidebar({
                   ariaLabel="テキストで保存"
                   className="ml-2"
                 />
-                <ExportButton
-                  label="PDF"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPrintMemo(memo);
-                  }}
-                  ariaLabel="PDFで保存"
-                  className="ml-1"
-                />
+                {memo.mode !== "task" && (
+                  <ExportButton
+                    label="PDF"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPrintMemo(memo);
+                    }}
+                    ariaLabel="PDFで保存"
+                    className="ml-1"
+                  />
+                )}
                 <button
                   onClick={(e) => handleDelete(e, memo.id)}
                   className="shrink-0 active:opacity-50 pl-3"
