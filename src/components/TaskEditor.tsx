@@ -15,8 +15,8 @@ type Props = {
   onUpdate: (id: string, patch: MemoPatch) => void;
 };
 
-// 押した瞬間に空の項目の blur で削除が走ると、ボタンが上へずれて click が成立しない。
-// フォーカスを動かさず、追加した側の autoFocus で空の項目を外す
+// 押した瞬間に空の項目の blur で削除が走ると、押したものが上へずれて click が成立しない。
+// フォーカスを動かさず、追加ボタンでは追加した側の autoFocus で空の項目を外す
 const keepFocus = (e: React.MouseEvent) => e.preventDefault();
 
 const addButtonStyle = { color: "#c9a9a2" };
@@ -165,8 +165,11 @@ function TaskItemRow({
   }, [item.text]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // 変換確定の Enter で項目が増えないよう、IME の入力中は見送る
-    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+    // 変換確定の Enter で項目が増えないよう、IME の入力中は見送る。
+    // Safari は確定の Enter を compositionend の後に送り isComposing が false になるため、keyCode 229 でも見分ける
+    const composing =
+      e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229;
+    if (e.key !== "Enter" || e.shiftKey || composing) return;
     e.preventDefault();
     if (item.text !== "") onEnter();
   };
@@ -186,8 +189,9 @@ function TaskItemRow({
         type="checkbox"
         checked={item.done}
         onChange={(e) => onChange({ done: e.target.checked })}
+        onMouseDown={keepFocus}
         aria-label={`${item.text || "項目"}をできたにする`}
-        className="shrink-0 w-4 h-4 accent-[#c9a9a2]"
+        className="shrink-0 w-4 h-4 rounded accent-[#c9a9a2] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#80625b]"
         style={{ marginTop: "0.35em" }}
       />
       <textarea
@@ -201,7 +205,7 @@ function TaskItemRow({
         aria-label="項目"
         className="flex-1 bg-transparent border-none leading-relaxed resize-none"
         style={{
-          color: item.done ? "#aaa" : "#333",
+          color: item.done ? "#707070" : "#333",
           textDecoration: item.done ? "line-through" : "none",
           fontFamily: "inherit",
           fontSize: "15px",

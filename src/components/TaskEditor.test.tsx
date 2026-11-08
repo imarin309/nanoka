@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -88,6 +88,28 @@ describe("TaskEditor", () => {
     await userEvent.keyboard("{Enter}");
 
     expect(items()).toEqual([""]);
+  });
+
+  it("Safari の変換確定の Enter では項目を増やさない", async () => {
+    render(<StatefulTask initial={[section("a", "課題", ["対空"])]} />);
+
+    fireEvent.keyDown(screen.getByLabelText("項目"), {
+      key: "Enter",
+      keyCode: 229,
+    });
+
+    expect(items()).toEqual(["対空"]);
+  });
+
+  // 押した瞬間に空の項目が消えるなら、フォーカスが移った時点で一覧から外れる
+  it("空の項目からチェックを押しても、空の項目を消さずにチェックする", async () => {
+    render(<StatefulTask initial={[section("a", "課題", ["", "対空"])]} />);
+
+    await userEvent.click(screen.getAllByLabelText("項目")[0]);
+    await userEvent.click(screen.getByLabelText("対空をできたにする"));
+
+    expect(items()).toEqual(["", "対空"]);
+    expect(screen.getByLabelText("対空をできたにする")).toBeChecked();
   });
 
   it("チェックでできたことを伝える", async () => {
