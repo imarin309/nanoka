@@ -13,6 +13,7 @@ import {
   deleteMemo as deleteMemoFromDB,
 } from "./useIndexedDB";
 import { generateId } from "../lib/id";
+import { createInitialSections } from "../lib/task";
 
 export function useMemos() {
   const [memos, setMemos] = useState<Memo[]>([]);
@@ -79,6 +80,7 @@ export function useMemos() {
       updatedAt: Date.now(),
       mode,
       ...(mode === "diary" && { entries: [] }),
+      ...(mode === "task" && { sections: createInitialSections() }),
     };
     try {
       await putMemo(db, newMemo);

@@ -1,4 +1,5 @@
 import type { DiaryEntry, Memo } from "../types";
+import { taskBodyText } from "./task";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -47,6 +48,7 @@ export function removeEmptyEntry(
 }
 
 export function memoBodyText(memo: Memo): string {
+  if (memo.mode === "task") return taskBodyText(memo.sections ?? []);
   if (memo.mode !== "diary") return memo.content;
   return (memo.entries ?? [])
     .map((e) => `${formatDateKey(e.date)}\n${e.content}`)
