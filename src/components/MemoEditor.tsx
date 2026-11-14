@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Memo } from "../types";
+import type { TextEdit } from "../lib/combo";
+import { insertMove, insertNewline, removeLastMove } from "../lib/combo";
 import type { Template } from "../lib/templates";
 import { TEMPLATES, insertTemplate } from "../lib/templates";
+import { ComboButton } from "./ComboButton";
+import { ComboPalette } from "./ComboPalette";
 import { TemplateButton } from "./TemplateButton";
 import { TemplatePicker } from "./TemplatePicker";
 
@@ -17,6 +21,8 @@ type Props = {
 export function MemoEditor({ memo, onUpdate, onNew }: Props) {
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isComboOpen, setIsComboOpen] = useState(false);
+  const pendingCaretRef = useRef<number | null>(null);
 
   useEffect(() => {
     const el = contentRef.current;
@@ -24,6 +30,26 @@ export function MemoEditor({ memo, onUpdate, onNew }: Props) {
     el.style.height = "auto";
     el.style.height = el.scrollHeight + "px";
   }, [memo?.content]);
+
+  // 本文を差し替えるとカーソルが末尾へ飛ぶので、描画の直後に戻す
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    const caret = pendingCaretRef.current;
+    if (!el || caret === null) return;
+    pendingCaretRef.current = null;
+    el.setSelectionRange(caret, caret);
+  }, [memo?.content]);
+
+  const editAtCaret = (edit: (content: string, caret: number) => TextEdit) => {
+    const el = contentRef.current;
+    if (!memo || !el) return;
+    // 一度もフォーカスしていない本文はカーソルが先頭にあるので、書き足しとして末尾に入れる
+    const caret =
+      document.activeElement === el ? el.selectionStart : memo.content.length;
+    const next = edit(memo.content, caret);
+    pendingCaretRef.current = next.caret;
+    onUpdate(memo.id, { content: next.content });
+  };
 
   const applyTemplate = (template: Template) => {
     if (!memo) return;
@@ -49,7 +75,11 @@ export function MemoEditor({ memo, onUpdate, onNew }: Props) {
   }
 
   return (
-    <div className="flex-1 flex flex-col px-6" style={{ marginTop: "40px" }}>
+    <div
+      className="flex-1 flex flex-col px-6"
+      // 開いたパレットの下に本文の末尾が隠れないようにする
+      style={{ marginTop: "40px", paddingBottom: isComboOpen ? "300px" : 0 }}
+    >
       {/* 本文 */}
       <textarea
         ref={contentRef}
@@ -66,6 +96,18 @@ export function MemoEditor({ memo, onUpdate, onNew }: Props) {
       />
 
       <TemplateButton onClick={() => setIsPickerOpen(true)} />
+      <ComboButton onClick={() => setIsComboOpen(true)} />
+
+      {isComboOpen && (
+        <ComboPalette
+          onMove={(move) =>
+            editAtCaret((content, caret) => insertMove(content, caret, move))
+          }
+          onUndo={() => editAtCaret(removeLastMove)}
+          onNewline={() => editAtCaret(insertNewline)}
+          onClose={() => setIsComboOpen(false)}
+        />
+      )}
 
       {isPickerOpen && (
         <TemplatePicker
