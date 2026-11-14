@@ -23,6 +23,11 @@ export function MemoEditor({ memo, onUpdate, onNew }: Props) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isComboOpen, setIsComboOpen] = useState(false);
   const pendingCaretRef = useRef<number | null>(null);
+  const lastCaretRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    lastCaretRef.current = null;
+  }, [memo?.id]);
 
   useEffect(() => {
     const el = contentRef.current;
@@ -43,10 +48,22 @@ export function MemoEditor({ memo, onUpdate, onNew }: Props) {
   const editAtCaret = (edit: (content: string, caret: number) => TextEdit) => {
     const el = contentRef.current;
     if (!memo || !el) return;
-    // 一度もフォーカスしていない本文はカーソルが先頭にあるので、書き足しとして末尾に入れる
+    // Tab でパレットへ移ると本文のフォーカスが外れるので、外れる直前の位置を使う。
+    // 一度も触っていない本文はカーソルが先頭にあるため、書き足しとして末尾に入れる
     const caret =
-      document.activeElement === el ? el.selectionStart : memo.content.length;
+      document.activeElement === el
+        ? el.selectionStart
+        : Math.min(
+            lastCaretRef.current ?? memo.content.length,
+            memo.content.length,
+          );
     const next = edit(memo.content, caret);
+    lastCaretRef.current = next.caret;
+    // 本文が変わらないと復元の effect が走らず、予約した位置が次の入力に持ち越される
+    if (next.content === memo.content) {
+      el.setSelectionRange(next.caret, next.caret);
+      return;
+    }
     pendingCaretRef.current = next.caret;
     onUpdate(memo.id, { content: next.content });
   };
@@ -85,6 +102,9 @@ export function MemoEditor({ memo, onUpdate, onNew }: Props) {
         ref={contentRef}
         value={memo.content}
         onChange={(e) => onUpdate(memo.id, { content: e.target.value })}
+        onBlur={(e) => {
+          lastCaretRef.current = e.currentTarget.selectionStart;
+        }}
         placeholder="ここにメモを書こう..."
         className="w-full bg-transparent border-none leading-relaxed"
         style={{

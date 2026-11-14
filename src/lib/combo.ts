@@ -58,7 +58,14 @@ export function describeDraft(draft: MoveDraft): string {
 }
 
 function lineStartOf(content: string, caret: number): number {
+  // lastIndexOf は負の検索位置を 0 とみなし、先頭の改行を拾ってしまう
+  if (caret === 0) return 0;
   return content.lastIndexOf("\n", caret - 1) + 1;
+}
+
+function lineEndOf(content: string, caret: number): number {
+  const end = content.indexOf("\n", caret);
+  return end === -1 ? content.length : end;
 }
 
 function separatorFor(before: string): string {
@@ -69,15 +76,26 @@ function separatorFor(before: string): string {
   return endsWithSpace ? SEPARATOR.trimStart() : SEPARATOR;
 }
 
+function separatorAfter(after: string): string {
+  const trimmed = after.trimStart();
+  if (trimmed === "" || trimmed.startsWith(">")) return "";
+  return trimmed.length < after.length ? SEPARATOR.trimEnd() : SEPARATOR;
+}
+
 export function insertMove(
   content: string,
   caret: number,
   move: string,
 ): TextEdit {
   const before = content.slice(lineStartOf(content, caret), caret);
+  const after = content.slice(caret, lineEndOf(content, caret));
   const inserted = separatorFor(before) + move;
   return {
-    content: content.slice(0, caret) + inserted + content.slice(caret),
+    content:
+      content.slice(0, caret) +
+      inserted +
+      separatorAfter(after) +
+      content.slice(caret),
     caret: caret + inserted.length,
   };
 }

@@ -92,6 +92,25 @@ describe("insertMove", () => {
   });
 });
 
+describe("insertMove（後ろに技があるとき）", () => {
+  it("後ろの技との間にも区切りを付ける", () => {
+    expect(insertMove("2中K > 236強P", 6, "DR")).toEqual({
+      content: "2中K > DR > 236強P",
+      caret: 8,
+    });
+  });
+
+  it("後ろが区切りで始まっていれば足さない", () => {
+    expect(insertMove("2中K > 236強P", 3, "DR").content).toBe(
+      "2中K > DR > 236強P",
+    );
+  });
+
+  it("次の行は見ない", () => {
+    expect(insertMove("2中K\n5強P", 3, "DR").content).toBe("2中K > DR\n5強P");
+  });
+});
+
 describe("insertNewline", () => {
   it("カーソルの位置で改行する", () => {
     expect(insertNewline("ab", 1)).toEqual({ content: "a\nb", caret: 2 });
@@ -118,6 +137,13 @@ describe("removeLastMove", () => {
   it("前の行までは消さない", () => {
     expect(removeLastMove("2中K\nDR", 6).content).toBe("2中K\n");
     expect(removeLastMove("2中K\n", 4).content).toBe("2中K\n");
+  });
+
+  it("先頭の改行を増やさない", () => {
+    expect(removeLastMove("\n2中K", 0)).toEqual({
+      content: "\n2中K",
+      caret: 0,
+    });
   });
 
   it("カーソルより後ろは残す", () => {

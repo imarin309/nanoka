@@ -122,6 +122,30 @@ describe("MemoEditor", () => {
       expect(textbox).toHaveValue("2中K > 5弱P > 5強K\n次");
     });
 
+    it("フォーカスが外れても、外れる前のカーソル位置に入れる", async () => {
+      render(<StatefulEditor initial={"2中K\n次"} />);
+      const textbox = screen.getByRole<HTMLTextAreaElement>("textbox");
+      textbox.focus();
+      textbox.setSelectionRange(3, 3);
+      textbox.blur();
+
+      await tap("コンボ入力を開く");
+      await tap("DR");
+
+      expect(textbox).toHaveValue("2中K > DR\n次");
+    });
+
+    it("本文が変わらない操作のあとも、入力位置がずれない", async () => {
+      render(<StatefulEditor initial="・レシピ:" />);
+      const textbox = screen.getByRole<HTMLTextAreaElement>("textbox");
+
+      await tap("コンボ入力を開く");
+      await tap("1つ戻す");
+      await userEvent.type(textbox, "あ");
+
+      expect(textbox).toHaveValue("・レシピ:あ");
+    });
+
     it("とじるとパレットが消える", async () => {
       render(<MemoEditor memo={memo} onUpdate={vi.fn()} onNew={vi.fn()} />);
 

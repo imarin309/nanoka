@@ -190,7 +190,7 @@ export function ComboPalette({ onMove, onUndo, onNewline, onClose }: Props) {
                 className="h-9 rounded-lg text-xs active:opacity-50"
                 style={{
                   background: pressed ? "#d4a9a0" : "#faf6f5",
-                  color: pressed ? "#fff" : "#555",
+                  color: pressed ? "#333" : "#555",
                 }}
               >
                 {label}
